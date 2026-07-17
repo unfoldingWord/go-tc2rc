@@ -1,0 +1,24 @@
+{
+  "project": { "id": "jon", "name": "Jonah" },
+  "resource": { "id": "ULT", "name": "" },
+  "generator": { "name": "tc-desktop", "build": "" },
+  "target_language": {
+    "id": "aa",
+    "name": "Afaraf",
+    "direction": "ltr",
+    "book": { "name": "Yunus" }
+  },
+  "ts_project": { "id": "jon", "name": "Jonah" },
+  "type": { "id": "text", "name": "Text" },
+  "source_translations": [
+    { "language_id": "en", "resource_id": "ult", "checking_level": "", "date_modified": "2020-12-24T10:20:25.034Z", "version": "5" }
+  ],
+  "translators": ["Test Translator"],
+  "checkers": ["Test Checker"],
+  "time_created": "2020-12-24T10:20:25.034Z",
+  "tcInitialized": true,
+  "tc_version": 7,
+  "license": "CC BY-SA 4.0",
+  "tc_edit_version": "3.0.0",
+  "tsv_relation": [ "en/ult", "hbo/uhb?v=2.1.14" ]
+}
