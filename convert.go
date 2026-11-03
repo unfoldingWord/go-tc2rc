@@ -91,6 +91,7 @@ func Convert(ctx context.Context, inDir, outDir string, opts Options) *Report {
 	fail := func(err error) *Report {
 		rep.OK = false
 		rep.Error = err.Error()
+		rep.Err = err
 		return rep
 	}
 

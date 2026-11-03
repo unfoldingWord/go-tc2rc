@@ -38,6 +38,11 @@ type Report struct {
 	// Error is set when OK is false.
 	Error string `json:"error,omitempty"`
 
+	// Err is the error behind Error, for callers that need to tell a failure
+	// caused by the input (e.g. a manifest it can't read) from one caused by
+	// the system (e.g. a full disk) with errors.Is and errors.As.
+	Err error `json:"-"`
+
 	// Warnings are non-fatal issues encountered during conversion.
 	Warnings []string `json:"warnings,omitempty"`
 }
