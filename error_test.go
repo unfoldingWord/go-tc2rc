@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -34,7 +35,7 @@ func TestConvertBadBookCode(t *testing.T) {
 	}
 }
 
-// A repo without a .usfm file fails, even when tc chapter JSON data exists.
+// A repo with neither a .usfm file nor chapter JSON fails and leaves no output.
 func TestConvertNoUSFM(t *testing.T) {
 	inDir := makeRepo(t, "repo", map[string]string{
 		"manifest.json": `{"tc_version": 8, "project": {"id": "jon"}, "type": {"id": "text"}, "target_language": {"id": "en"}}`,
@@ -42,13 +43,16 @@ func TestConvertNoUSFM(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(inDir, "jon"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(inDir, "jon", "1.json"), []byte(`{"1": "In the beginning"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(inDir, "jon", "manifest.json"), []byte(`{"subject": "Bible"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	outDir := filepath.Join(t.TempDir(), "out")
 	rep := Convert(context.Background(), inDir, outDir, Options{})
 	if rep.OK {
-		t.Fatal("expected failure when no .usfm file exists")
+		t.Fatal("expected failure when there is no .usfm file and no chapter JSON")
+	}
+	if !strings.Contains(rep.Error, "no .usfm file") || !strings.Contains(rep.Error, "no chapter JSON files") {
+		t.Errorf("Error = %q, want it to name both missing inputs", rep.Error)
 	}
 	if _, err := os.Stat(outDir); !os.IsNotExist(err) {
 		t.Error("outDir should not exist after failed conversion")

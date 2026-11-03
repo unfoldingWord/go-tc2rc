@@ -83,6 +83,8 @@ func issuedDate(timeCreated, inDir string) string {
 //
 // The resulting RC (subject "Aligned Bible", one book per repo) is suitable
 // for conversion to Scripture Burrito via github.com/unfoldingWord/go-rc2sb.
+// A repo with no .usfm file is converted from its <book>/<chapter>.json files
+// instead; that text is unaligned, so the RC's subject is then "Bible".
 func Convert(ctx context.Context, inDir, outDir string, opts Options) *Report {
 	rep := &Report{Source: inDir, Output: outDir}
 
@@ -118,20 +120,38 @@ func Convert(ctx context.Context, inDir, outDir string, opts Options) *Report {
 	if repoName == "" {
 		repoName = filepath.Base(filepath.Clean(inDir))
 	}
+	var header usfmHeader
+	var built *chapterUSFM
 	usfmName, err := findUSFM(inDir, repoName, book.Code)
 	if err != nil {
-		return fail(err)
-	}
-	rep.USFM = usfmName
-	if !strings.EqualFold(usfmName, repoName+".usfm") {
-		rep.Warnf("no %s.usfm found; selected %s", repoName, usfmName)
-	}
-	header, err := readUSFMHeader(filepath.Join(inDir, usfmName))
-	if err != nil {
-		return fail(fmt.Errorf("reading %s: %w", usfmName, err))
-	}
-	if header.IDCode != "" && header.IDCode != code {
-		rep.Warnf("%s has \\id %s but manifest project is %s", usfmName, header.IDCode, code)
+		builtTitle := m.BookName
+		if builtTitle == "" {
+			builtTitle = m.ProjectName
+		}
+		if builtTitle == "" {
+			builtTitle = book.Title
+		}
+		var chErr error
+		if built, chErr = buildChapterUSFM(inDir, book, builtTitle); chErr != nil {
+			return fail(fmt.Errorf("%w, and %w", err, chErr))
+		}
+		rep.ChapterDir = built.Dir
+		rep.Warnf("no .usfm file found; built %s.usfm from %d chapter JSON files in %s/ (%d verses, unaligned)", code, built.Chapters, built.Dir, built.Verses)
+		if len(built.Skipped) > 0 {
+			rep.Warnf("left out chapter JSON keys that are not verse numbers: %s", strings.Join(built.Skipped, ", "))
+		}
+		header = usfmHeader{IDCode: code, H: builtTitle, MT: builtTitle, USFM3: true}
+	} else {
+		rep.USFM = usfmName
+		if !strings.EqualFold(usfmName, repoName+".usfm") {
+			rep.Warnf("no %s.usfm found; selected %s", repoName, usfmName)
+		}
+		if header, err = readUSFMHeader(filepath.Join(inDir, usfmName)); err != nil {
+			return fail(fmt.Errorf("reading %s: %w", usfmName, err))
+		}
+		if header.IDCode != "" && header.IDCode != code {
+			rep.Warnf("%s has \\id %s but manifest project is %s", usfmName, header.IDCode, code)
+		}
 	}
 
 	title := header.BookTitle()
@@ -158,7 +178,12 @@ func Convert(ctx context.Context, inDir, outDir string, opts Options) *Report {
 	}
 
 	outUSFM := code + ".usfm"
-	if err := copyFile(filepath.Join(inDir, usfmName), filepath.Join(outDir, outUSFM)); err != nil {
+	if built != nil {
+		err = os.WriteFile(filepath.Join(outDir, outUSFM), []byte(built.Content), 0o644)
+	} else {
+		err = copyFile(filepath.Join(inDir, usfmName), filepath.Join(outDir, outUSFM))
+	}
+	if err != nil {
 		return cleanup(err)
 	}
 
@@ -208,13 +233,19 @@ func Convert(ctx context.Context, inDir, outDir string, opts Options) *Report {
 	if generator == "" {
 		generator = "translationCore"
 	}
+	subject := "Aligned Bible"
+	description := fmt.Sprintf("Converted from translationCore project (tc_version %d, %s)", m.TCVersion, generator)
+	if built != nil {
+		subject = "Bible" // text from chapter JSON carries no alignment
+		description += "; unaligned text built from chapter JSON"
+	}
 
 	man := &rc.Manifest{
 		DublinCore: rc.DublinCore{
 			Conformsto:  "rc0.2",
 			Contributor: contributors,
 			Creator:     "Door43 World Missions Community",
-			Description: fmt.Sprintf("Converted from translationCore project (tc_version %d, %s)", m.TCVersion, generator),
+			Description: description,
 			Format:      format,
 			Identifier:  identifier,
 			Issued:      issuedDate(m.TimeCreated, inDir),
@@ -228,7 +259,7 @@ func Convert(ctx context.Context, inDir, outDir string, opts Options) *Report {
 			Relation:  relation,
 			Rights:    rights,
 			Source:    sources,
-			Subject:   "Aligned Bible",
+			Subject:   subject,
 			Title:     rcTitle,
 			Type:      "bundle",
 			Version:   "1",
@@ -278,11 +309,12 @@ func ResultFromReport(rep *Report) Result {
 		return Result{}
 	}
 	return Result{
-		Book:      rep.Book,
-		TCVersion: rep.TCVersion,
-		InDir:     rep.Source,
-		OutDir:    rep.Output,
-		Warnings:  append([]string(nil), rep.Warnings...),
+		Book:       rep.Book,
+		TCVersion:  rep.TCVersion,
+		InDir:      rep.Source,
+		OutDir:     rep.Output,
+		ChapterDir: rep.ChapterDir,
+		Warnings:   append([]string(nil), rep.Warnings...),
 	}
 }
 

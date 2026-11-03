@@ -28,6 +28,10 @@ type Report struct {
 	// USFM is the source .usfm filename selected from the tc repo.
 	USFM string `json:"usfm"`
 
+	// ChapterDir is set when the repo had no .usfm file: the book directory
+	// whose <chapter>.json files the USFM was built from. That text is unaligned.
+	ChapterDir string `json:"chapter_dir,omitempty"`
+
 	// OK is true when a usable RC repository was written.
 	OK bool `json:"ok"`
 
@@ -57,6 +61,9 @@ type Result struct {
 
 	// OutDir is the output RC directory.
 	OutDir string
+
+	// ChapterDir is set when the USFM was built from chapter JSON (see Report.ChapterDir).
+	ChapterDir string
 
 	// Warnings is the list of non-fatal conversion warnings.
 	Warnings []string
