@@ -48,12 +48,18 @@ when a usable RC repo was produced, 1 otherwise.
    tc manifest: `resource.id` becomes the RC identifier, `target_language`
    becomes the language block, `license` becomes rights, `tsv_relation`
    becomes relation, `source_translations` becomes source, and the subject is
-   always `Aligned Bible`.
+   `Aligned Bible` (`Bible` when the text comes from chapter JSON, see 2).
 2. **USFM selection** — tc repos usually hold two `.usfm` files: the tc
    export named after the repo and a copy named after the book. Selection
    priority: `<repoName>.usfm`, then `<book>.usfm` (e.g. `amo.usfm` for
-   Amos), then the first `.usfm` file in the repo root. Repos with no
-   `.usfm` file fail to convert.
+   Amos), then the first `.usfm` file in the repo root.
+   translationCore saves made before `tc_version` existed (`generator.name:
+   tc-desktop`, `package_version: 1`) have no `.usfm` file; their text is in
+   `<book>/<chapter>.json`, each mapping verse numbers to text. For these, the
+   USFM is built from those files (`\id`, `\h`, `\toc1-3`, `\mt`, then `\c`,
+   `\p` and one `\v` per verse). That text is unaligned, so the RC subject is
+   `Bible` and `Report.ChapterDir` names the book directory used. A repo with
+   neither a `.usfm` file nor chapter JSON fails to convert.
 3. **Localized book title** — read from the USFM `\mt`, `\mt1`, or `\h`
    marker (in that order), falling back to `target_language.book.name`,
    `project.name`, then the canonical English name. Used for the RC project

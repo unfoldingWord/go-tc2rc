@@ -150,3 +150,18 @@ func TestLoadManifestDirectionDefault(t *testing.T) {
 		t.Errorf("Direction = %q, want ltr default", m.Language.Direction)
 	}
 }
+
+// tc-desktop saves made before tc_version and tcInitialized still load.
+func TestLoadManifestTCDesktopWithoutVersion(t *testing.T) {
+	dir := writeManifest(t, `{"generator": {"name": "tc-desktop", "build": ""}, "package_version": 1, "project": {"id": "tit", "name": "Titus"}, "target_language": {"id": "en"}}`)
+	m, err := LoadManifest(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.TCVersion != 0 || m.ProjectID != "tit" || m.TypeID != "text" {
+		t.Errorf("manifest = %+v", m)
+	}
+	if _, err := LoadManifest(writeManifest(t, `{"generator": {"name": "ts-android"}, "package_version": 7, "project": {"id": "tit"}}`)); err == nil {
+		t.Error("a tS manifest with no tc markers loaded as translationCore")
+	}
+}

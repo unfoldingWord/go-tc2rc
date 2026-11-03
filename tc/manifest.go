@@ -135,8 +135,9 @@ func LoadManifest(repoDir string) (*Manifest, error) {
 
 	m := &Manifest{}
 	m.TCVersion = asInt(raw["tc_version"])
-	if m.TCVersion == 0 && !asBool(raw["tcInitialized"]) {
-		return nil, fmt.Errorf("manifest.json has no tc_version and tcInitialized is not true; not a translationCore repo")
+	// Saves made before tc_version existed still name tc-desktop as their generator.
+	if m.TCVersion == 0 && !asBool(raw["tcInitialized"]) && asString(getMap(raw, "generator")["name"]) != "tc-desktop" {
+		return nil, fmt.Errorf("manifest.json has no tc_version, tcInitialized is not true and the generator is not tc-desktop; not a translationCore repo")
 	}
 	m.TCEditVersion = strings.TrimSpace(asString(raw["tc_edit_version"]))
 

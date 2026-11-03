@@ -66,6 +66,10 @@ Flags:
 		fmt.Fprintf(os.Stderr, "FAILED %s: %s\n", inDir, rep.Error)
 		os.Exit(1)
 	}
-	fmt.Printf("OK %s -> %s (book=%s, tc_version=%d, usfm=%s, warnings=%d)\n",
-		inDir, outDir, rep.Book, rep.TCVersion, rep.USFM, len(rep.Warnings))
+	source := "usfm=" + rep.USFM
+	if rep.ChapterDir != "" {
+		source = "chapter_json=" + rep.ChapterDir + "/"
+	}
+	fmt.Printf("OK %s -> %s (book=%s, tc_version=%d, %s, warnings=%d)\n",
+		inDir, outDir, rep.Book, rep.TCVersion, source, len(rep.Warnings))
 }
